@@ -4,32 +4,94 @@ import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /** Shared memory implementation of Linda. */
 public class CentralizedLinda implements Linda {
 
-    private ArrayList<Tuple> sharedSpace;
+    private final List<Tuple> sharedSpace;
+
+    private final List<Tuple> readerList;
+    private final List<Tuple> takerList;
 
     public CentralizedLinda() {
-        sharedSpace = new ArrayList<>();
+        sharedSpace = Collections.synchronizedList(new ArrayList<>());
+        readerList = Collections.synchronizedList(new ArrayList<>());
+        takerList = Collections.synchronizedList(new ArrayList<>());
     }
 
-    @Override
     public void write(Tuple t) {
-
+        synchronized(this.sharedSpace) {
+            this.sharedSpace.add(t);
+            this.notifyReaders(t);
+            this.notifyTaker(t);
+        }
     }
 
-    @Override
-    public Tuple take(Tuple template) {
-        return null;
+    private void notifyReaders(Tuple template) {
+        synchronized(this.readerList) {
+            for(Tuple r : this.readerList) {
+                synchronized(r) {
+                    if(r.matches(template))
+                        r.notifyAll();
+                }
+            }
+        }
     }
 
-    @Override
+    private void notifyTaker(Tuple template) {
+        synchronized(this.takerList) {
+            Iterator<Tuple> i = this.takerList.iterator();
+            Tuple t;
+
+            while(i.hasNext()){
+                t = i.next();
+                synchronized(t) {
+                    if(t.matches(template)){
+                        t.notifyAll();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
     public Tuple read(Tuple template) {
-        return null;
+        try {
+            Tuple readed;
+
+            while((readed = this.tryRead(template)) == null) {
+                synchronized(this.readerList) {
+                    this.takerList.add(template);
+                }
+                template.wait();
+            }
+
+            return readed;
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public Tuple take(Tuple template) {
+        try {
+            Tuple taken;
+
+            while((taken = this.tryTake(template)) == null) {
+                synchronized(this.takerList) {
+                    this.takerList.add(template);
+                }
+                template.wait();
+            }
+
+            return taken;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
