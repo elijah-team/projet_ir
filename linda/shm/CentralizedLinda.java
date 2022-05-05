@@ -4,12 +4,17 @@ import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /** Shared memory implementation of Linda. */
 public class CentralizedLinda implements Linda {
-	
+
+    private ArrayList<Tuple> sharedSpace;
+
     public CentralizedLinda() {
+        sharedSpace = new ArrayList<>();
     }
 
     @Override
