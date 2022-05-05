@@ -21,7 +21,7 @@ public class CentralizedLinda implements Linda {
     }
 
     public void write(Tuple t) {
-        synchronized(this.sharedSpace) {
+        synchronized(sharedSpace) {
             this.sharedSpace.add(t);
             this.notifyReaders(t);
             this.notifyTaker(t);
@@ -29,18 +29,18 @@ public class CentralizedLinda implements Linda {
     }
 
     private void notifyReaders(Tuple template) {
-        synchronized(this.readerList) {
-            for(Tuple r : this.readerList) {
-                synchronized(r) {
-                    if(r.matches(template))
-                        r.notifyAll();
+        synchronized(readerList) {
+            for(Tuple tuple : readerList) {
+                synchronized(tuple) {
+                    if(tuple.matches(template))
+                        tuple.notifyAll();
                 }
             }
         }
     }
 
     private void notifyTaker(Tuple template) {
-        synchronized(this.takerList) {
+        synchronized(takerList) {
             Iterator<Tuple> i = this.takerList.iterator();
             Tuple t;
 
@@ -60,13 +60,12 @@ public class CentralizedLinda implements Linda {
         try {
             Tuple readed;
 
-            while((readed = this.tryRead(template)) == null) {
-                synchronized(this.readerList) {
-                    this.takerList.add(template);
+            while((readed = tryRead(template)) == null) {
+                synchronized(readerList) {
+                    readerList.add(template);
                 }
                 template.wait();
             }
-
             return readed;
         }
         catch(Exception e) {
@@ -79,13 +78,15 @@ public class CentralizedLinda implements Linda {
         try {
             Tuple taken;
 
-            while((taken = this.tryTake(template)) == null) {
-                synchronized(this.takerList) {
-                    this.takerList.add(template);
+            while((taken = tryTake(template)) == null) {
+                synchronized(takerList) {
+                    takerList.add(template);
                 }
                 template.wait();
             }
-
+            synchronized (sharedSpace) {
+                sharedSpace.remove(taken);
+            }
             return taken;
         }
         catch (Exception e) {
