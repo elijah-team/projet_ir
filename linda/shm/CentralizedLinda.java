@@ -97,22 +97,48 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple tryTake(Tuple template) {
+        Tuple tupFound = null;
+        for(Tuple tupSpace : sharedSpace){
+            if(tupSpace.matches(template)){
+                tupFound = tupSpace;
+                sharedSpace.remove(tupSpace);
+                return (tupFound);
+            }
+        }
         return null;
     }
 
     @Override
     public Tuple tryRead(Tuple template) {
-        return null;
+        for (Tuple tupSpace : sharedSpace) {
+            if (tupSpace.matches(template)) {
+                return (tupSpace);
+            }
+            return null;
+        }
     }
 
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
-        return null;
+        Collection<Tuple> listTup = new ArrayList<>();
+        for(Tuple tupSpace : sharedSpace){
+            if(tupSpace.matches(template)){
+                listTup.add(tupSpace);
+                sharedSpace.remove(tupSpace);
+            }
+        }
+        return (listTup);
     }
 
     @Override
     public Collection<Tuple> readAll(Tuple template) {
-        return null;
+        Collection<Tuple> listTup = new ArrayList<>();
+        for(Tuple tupSpace : this.sharedSpace){
+            if(tupSpace.matches(template)){
+                listTup.add(tupSpace);
+            }
+        }
+        return (listTup);
     }
 
     @Override
