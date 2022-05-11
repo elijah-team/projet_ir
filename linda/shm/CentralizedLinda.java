@@ -10,7 +10,6 @@ import java.util.*;
 public class CentralizedLinda implements Linda {
 
     private final List<Tuple> sharedSpace;
-
     private final List<Tuple> readerList;
     private final List<Tuple> takerList;
 
@@ -59,12 +58,16 @@ public class CentralizedLinda implements Linda {
     public Tuple read(Tuple template) {
         try {
             Tuple readed;
-
-            while((readed = tryRead(template)) == null) {
-                synchronized(readerList) {
-                    readerList.add(template);
+            synchronized(readerList) {
+                readerList.add(template);
+            }
+            synchronized (sharedSpace) {
+                while((readed = tryRead(template)) == null) {
+                    template.wait();
                 }
-                template.wait();
+            }
+            synchronized(readerList) {
+                readerList.remove(template);
             }
             return readed;
         }
@@ -77,15 +80,16 @@ public class CentralizedLinda implements Linda {
     public Tuple take(Tuple template) {
         try {
             Tuple taken;
-
-            while((taken = tryTake(template)) == null) {
-                synchronized(takerList) {
-                    takerList.add(template);
-                }
-                template.wait();
+            synchronized(takerList) {
+                takerList.add(template);
             }
             synchronized (sharedSpace) {
-                sharedSpace.remove(taken);
+                while((taken = tryTake(template)) == null) {
+                    template.wait();
+                }
+            }
+            synchronized(takerList) {
+                takerList.remove(template);
             }
             return taken;
         }
@@ -98,11 +102,13 @@ public class CentralizedLinda implements Linda {
     @Override
     public Tuple tryTake(Tuple template) {
         Tuple tupFound = null;
-        for(Tuple tupSpace : sharedSpace){
-            if(tupSpace.matches(template)){
-                tupFound = tupSpace;
-                sharedSpace.remove(tupSpace);
-                return (tupFound);
+        synchronized(sharedSpace) {
+            for(Tuple tupSpace : sharedSpace){
+                if(tupSpace.matches(template)){
+                    tupFound = tupSpace;
+                    sharedSpace.remove(tupSpace);
+                    return (tupFound);
+                }
             }
         }
         return null;
@@ -114,8 +120,8 @@ public class CentralizedLinda implements Linda {
             if (tupSpace.matches(template)) {
                 return (tupSpace);
             }
-            return null;
         }
+        return null;
     }
 
     @Override
