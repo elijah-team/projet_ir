@@ -102,7 +102,7 @@ public class CentralizedLinda implements Linda {
     @Override
     public Tuple tryTake(Tuple template) {
         Tuple tupFound = null;
-        synchronized(sharedSpace) {
+        synchronized (sharedSpace){
             for(Tuple tupSpace : sharedSpace){
                 if(tupSpace.matches(template)){
                     tupFound = tupSpace;
@@ -116,9 +116,11 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple tryRead(Tuple template) {
-        for (Tuple tupSpace : sharedSpace) {
-            if (tupSpace.matches(template)) {
-                return (tupSpace);
+        synchronized (sharedSpace){
+            for (Tuple tupSpace : sharedSpace) {
+                if (tupSpace.matches(template)) {
+                    return (tupSpace);
+                }
             }
         }
         return null;
@@ -127,10 +129,12 @@ public class CentralizedLinda implements Linda {
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
         Collection<Tuple> listTup = new ArrayList<>();
-        for(Tuple tupSpace : sharedSpace){
-            if(tupSpace.matches(template)){
-                listTup.add(tupSpace);
-                sharedSpace.remove(tupSpace);
+        synchronized (sharedSpace){
+            for(Tuple tupSpace : sharedSpace){
+                if(tupSpace.matches(template)){
+                    listTup.add(tupSpace);
+                    sharedSpace.remove(tupSpace);
+                }
             }
         }
         return (listTup);
@@ -139,9 +143,11 @@ public class CentralizedLinda implements Linda {
     @Override
     public Collection<Tuple> readAll(Tuple template) {
         Collection<Tuple> listTup = new ArrayList<>();
-        for(Tuple tupSpace : this.sharedSpace){
-            if(tupSpace.matches(template)){
-                listTup.add(tupSpace);
+        synchronized (sharedSpace){
+            for(Tuple tupSpace : this.sharedSpace){
+                if(tupSpace.matches(template)){
+                    listTup.add(tupSpace);
+                }
             }
         }
         return (listTup);
