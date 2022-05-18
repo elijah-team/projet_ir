@@ -4,42 +4,108 @@ import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /** Shared memory implementation of Linda. */
 public class CentralizedLinda implements Linda {
 
-    private ArrayList<Tuple> sharedSpace;
+    private final List<Tuple> sharedSpace;
+    private final List<Tuple> readerList;
+    private final List<Tuple> takerList;
 
     public CentralizedLinda() {
-        sharedSpace = new ArrayList<>();
+        sharedSpace = Collections.synchronizedList(new ArrayList<>());
+        readerList = Collections.synchronizedList(new ArrayList<>());
+        takerList = Collections.synchronizedList(new ArrayList<>());
     }
 
-    @Override
     public void write(Tuple t) {
-
+        synchronized(sharedSpace) {
+            this.sharedSpace.add(t);
+            System.out.println(sharedSpace);
+            System.out.println("Notify readers");
+            this.notifyReaders(t);
+            System.out.println("Notify takers");
+            this.notifyTaker(t);
+        }
     }
 
-    @Override
-    public Tuple take(Tuple template) {
-        return null;
+    private void notifyReaders(Tuple template) {
+        synchronized(readerList) {
+            for(Tuple tuple : readerList) {
+                if(template.matches(tuple)) {
+                    synchronized (tuple) {
+                        System.out.println("Motif trouvé");
+                        tuple.notifyAll();
+                    }
+                }
+            }
+        }
     }
 
-    @Override
+    private void notifyTaker(Tuple template) {
+        synchronized(takerList) {
+            for(Tuple tuple : takerList){
+                //System.out.println("tuple : " + tuple);
+                //System.out.println(template);
+                if(template.matches(tuple)){
+                    synchronized (tuple) {
+                        System.out.println("Motif trouvé");
+                        tuple.notifyAll();
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
     public Tuple read(Tuple template) {
-        return null;
+        try {
+            Tuple readed;
+            readerList.add(template);
+            synchronized(template){
+                while((readed = tryRead(template)) == null) {
+                    template.wait();
+                }
+            }
+            readerList.remove(template);
+            return readed;
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public Tuple take(Tuple template) {
+        try {
+            Tuple taken;
+            takerList.add(template);
+            synchronized (template) {
+                while((taken = tryTake(template)) == null) {
+                    System.out.println("Attente");
+                    template.wait();
+                }
+            }
+            takerList.remove(template);
+            return taken;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     @Override
     public Tuple tryTake(Tuple template) {
         Tuple tupFound = null;
-        for(Tuple tupSpace : sharedSpace){
-            if(tupSpace.matches(template)){
-                tupFound = tupSpace;
-                sharedSpace.remove(tupSpace);
-                return (tupFound);
+        synchronized (sharedSpace){
+            for(Tuple tupSpace : sharedSpace){
+                if(tupSpace.matches(template)){
+                    tupFound = tupSpace;
+                    sharedSpace.remove(tupSpace);
+                    return (tupFound);
+                }
             }
         }
         return null;
@@ -47,9 +113,11 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple tryRead(Tuple template) {
-        for (Tuple tupSpace : sharedSpace) {
-            if (tupSpace.matches(template)) {
-                return (tupSpace);
+        synchronized (sharedSpace){
+            for (Tuple tupSpace : sharedSpace) {
+                if (tupSpace.matches(template)) {
+                    return (tupSpace);
+                }
             }
         }
         return null;
@@ -58,11 +126,14 @@ public class CentralizedLinda implements Linda {
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
         Collection<Tuple> listTup = new ArrayList<>();
-        for(Tuple tupSpace : sharedSpace){
-            if(tupSpace.matches(template)){
-                listTup.add(tupSpace);
-                sharedSpace.remove(tupSpace);
+        synchronized (sharedSpace){
+            for(Tuple tupSpace : sharedSpace){
+                if(tupSpace.matches(template)){
+                    listTup.add(tupSpace);
+                }
             }
+            for(Tuple toRemove : listTup)
+                sharedSpace.remove(toRemove);
         }
         return (listTup);
     }
@@ -70,9 +141,11 @@ public class CentralizedLinda implements Linda {
     @Override
     public Collection<Tuple> readAll(Tuple template) {
         Collection<Tuple> listTup = new ArrayList<>();
-        for(Tuple tupSpace : this.sharedSpace){
-            if(tupSpace.matches(template)){
-                listTup.add(tupSpace);
+        synchronized (sharedSpace){
+            for(Tuple tupSpace : this.sharedSpace){
+                if(tupSpace.matches(template)){
+                    listTup.add(tupSpace);
+                }
             }
         }
         return (listTup);
