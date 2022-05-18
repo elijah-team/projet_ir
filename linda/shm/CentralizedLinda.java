@@ -22,7 +22,10 @@ public class CentralizedLinda implements Linda {
     public void write(Tuple t) {
         synchronized(sharedSpace) {
             this.sharedSpace.add(t);
+            System.out.println(sharedSpace);
+            System.out.println("Notify readers");
             this.notifyReaders(t);
+            System.out.println("Notify takers");
             this.notifyTaker(t);
         }
     }
@@ -30,9 +33,11 @@ public class CentralizedLinda implements Linda {
     private void notifyReaders(Tuple template) {
         synchronized(readerList) {
             for(Tuple tuple : readerList) {
-                synchronized(tuple) {
-                    if(tuple.matches(template))
+                if(template.matches(tuple)) {
+                    synchronized (tuple) {
+                        System.out.println("Motif trouvé");
                         tuple.notifyAll();
+                    }
                 }
             }
         }
@@ -40,16 +45,15 @@ public class CentralizedLinda implements Linda {
 
     private void notifyTaker(Tuple template) {
         synchronized(takerList) {
-            Iterator<Tuple> i = this.takerList.iterator();
-            Tuple t;
-
-            while(i.hasNext()){
-                t = i.next();
-                synchronized(t) {
-                    if(t.matches(template)){
-                        t.notifyAll();
-                        return;
+            for(Tuple tuple : takerList){
+                //System.out.println("tuple : " + tuple);
+                //System.out.println(template);
+                if(template.matches(tuple)){
+                    synchronized (tuple) {
+                        System.out.println("Motif trouvé");
+                        tuple.notifyAll();
                     }
+                    return;
                 }
             }
         }
@@ -58,17 +62,13 @@ public class CentralizedLinda implements Linda {
     public Tuple read(Tuple template) {
         try {
             Tuple readed;
-            synchronized(readerList) {
-                readerList.add(template);
-            }
-            synchronized (sharedSpace) {
+            readerList.add(template);
+            synchronized(template){
                 while((readed = tryRead(template)) == null) {
                     template.wait();
                 }
             }
-            synchronized(readerList) {
-                readerList.remove(template);
-            }
+            readerList.remove(template);
             return readed;
         }
         catch(Exception e) {
@@ -80,17 +80,14 @@ public class CentralizedLinda implements Linda {
     public Tuple take(Tuple template) {
         try {
             Tuple taken;
-            synchronized(takerList) {
-                takerList.add(template);
-            }
-            synchronized (sharedSpace) {
+            takerList.add(template);
+            synchronized (template) {
                 while((taken = tryTake(template)) == null) {
+                    System.out.println("Attente");
                     template.wait();
                 }
             }
-            synchronized(takerList) {
-                takerList.remove(template);
-            }
+            takerList.remove(template);
             return taken;
         }
         catch (Exception e) {
@@ -133,9 +130,10 @@ public class CentralizedLinda implements Linda {
             for(Tuple tupSpace : sharedSpace){
                 if(tupSpace.matches(template)){
                     listTup.add(tupSpace);
-                    sharedSpace.remove(tupSpace);
                 }
             }
+            for(Tuple toRemove : listTup)
+                sharedSpace.remove(toRemove);
         }
         return (listTup);
     }
