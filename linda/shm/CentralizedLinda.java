@@ -51,8 +51,8 @@ public class CentralizedLinda implements Linda {
             if (tupSpace.matches(template)) {
                 return (tupSpace);
             }
-            return null;
         }
+        return null;
     }
 
     @Override
