@@ -1,23 +1,21 @@
 package linda.shm;
 
 import com.sun.tools.jconsole.JConsoleContext;
+import linda.Backup;
 import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Shared sharedSpace implementation of Linda.
+ * Implémentation de type mémoire partagée de Linda.
  *
  * @author Nathan Chavas
  * @author Mohamed Moudjeb
  */
-public class CentralizedLinda implements Linda {
+public class CentralizedLinda implements Linda, Backup {
 
     private String filepath = "./.linda_backup";
     private List<Tuple> sharedSpace;
@@ -261,6 +259,7 @@ public class CentralizedLinda implements Linda {
             FileOutputStream file_output = new FileOutputStream(filepath);
             ObjectOutputStream object_output = new ObjectOutputStream(file_output);
             object_output.writeObject(this.sharedSpace);
+            System.out.println("Mémoire partagée sauvegardée");
             object_output.close();
             file_output.close();
         } catch (IOException e) {
@@ -272,10 +271,13 @@ public class CentralizedLinda implements Linda {
         try {
             FileInputStream file_input = new FileInputStream(filepath);
             ObjectInputStream object_input = new ObjectInputStream(file_input);
-            this.sharedSpace = (List<Tuple>) object_input.readObject();
+            List<Tuple> readCase = (List<Tuple>) object_input.readObject();
+            this.sharedSpace.addAll(readCase);
             object_input.close();
             file_input.close();
-        } catch (IOException|ClassNotFoundException e) {
+        } catch (FileNotFoundException e) {
+            System.err.println("Le fichier spécifié est introuvable");
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }

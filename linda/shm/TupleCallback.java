@@ -5,6 +5,12 @@ import java.util.concurrent.Semaphore;
 import linda.Callback;
 import linda.Tuple;
 
+/**
+ * Callback utilisé pour la gestion de l'écriture/lecture concurrent.
+ *
+ * @author Nathan Chavas
+ * @author Mohamed Moudjeb
+ */
 public class TupleCallback implements Callback, Serializable {
     private Semaphore sem = new Semaphore(0);
 
