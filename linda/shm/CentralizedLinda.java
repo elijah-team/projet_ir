@@ -1,15 +1,11 @@
 package linda.shm;
 
-import com.sun.tools.jconsole.JConsoleContext;
 import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Shared sharedSpace implementation of Linda.
@@ -30,18 +26,31 @@ public class CentralizedLinda implements Linda {
         this.takerEventList = Collections.synchronizedList(new ArrayList<>());
     }
 
-    public void write(Tuple t) {
-        t = t.deepclone();
+    /**
+     * Méthode write permettant l'écriture d'un tuple dans l'espace partagé.
+     * Prévient les clients en attente d'un motif spécifique.
+     * @param tuple tuple ajouté à l'espace partagé.
+     */
+    public void write(Tuple tuple) {
+        // Clonage du tuple pour éviter des mauvaises manipulations.
+        tuple = tuple.deepclone();
         System.out.println("Notify readers");
-        this.notifyReaders(t);
+        this.notifyReaders(tuple);
         System.out.println("Notify takers");
-        boolean taken = this.notifyTaker(t);
+        boolean taken = this.notifyTaker(tuple);
         save(this.filepath);
-        if (!taken) this.sharedSpace.add(t);
+        // Ajoute le tuple à l'espace partagé si personne ne l'a pris.
+        if (!taken) this.sharedSpace.add(tuple);
     }
 
+    /**
+     * Alerte les lecteurs en attente de l'ajout d'un tuple dans l'espace
+     * partagé.
+     * @param tuple tuple ajouté à l'espace partagé.
+     */
     private void notifyReaders(Tuple tuple) {
         ArrayList<Event> toRemove = new ArrayList<>();
+        // Accès restreint à la liste des lecteurs.
         synchronized(this.readerEventList) {
             for (Event readEvent : readerEventList) {
                 if (readEvent.isMatching(tuple)) {
@@ -57,6 +66,11 @@ public class CentralizedLinda implements Linda {
         }
     }
 
+    /**
+     * Alerte les consomateurs en attente de l'ajout d'un tuple dans l'espace
+     * partagé.
+     * @param tuple tuple ajouté à l'espace partagé.
+     */
     private boolean notifyTaker(Tuple tuple) {
         boolean taken = false;
         Event takeEvent = null;

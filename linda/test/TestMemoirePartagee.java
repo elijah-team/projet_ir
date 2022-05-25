@@ -7,8 +7,8 @@ import linda.*;
 
 /**
  *
- * @author Alexandra Jacquet
- * @author Florian Vetu
+ * @author Nathan Chavas
+ * @author Mohamed Moudjeb
  */
 public class TestMemoirePartagee {
 
@@ -41,10 +41,6 @@ public class TestMemoirePartagee {
         }
     }
 
-    /**
-     *
-     * @param a
-     */
     public static void main(String[] a) {
 
         final Linda linda = new linda.shm.CentralizedLinda();
