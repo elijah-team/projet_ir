@@ -1,12 +1,13 @@
 package linda.server;
 
-import java.io.*;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Collection;
-import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import linda.Backup;
 import linda.Linda;
 import linda.Linda.eventMode;
@@ -179,9 +180,19 @@ public class LindaRMIImpl extends UnicastRemoteObject implements LindaRMI, Backu
         } catch (RemoteException ex) {
             System.err.println("Serveur déjà en écoute sur ce port...");
         }
-        LindaRMI server = new LindaRMIImpl();
-        ((LindaRMIImpl) server).load("save_backup");
+        LindaRMIImpl server = new LindaRMIImpl();
+        server.load("save_backup");
+        assert dns != null;
         dns.rebind("linda", server);
         System.out.println("Le serveur est up");
+        Timer timer = new Timer();
+        int begin = 1000; //timer starts after 1 second.
+        int timeinterval = 10 * 1000; //timer executes every 10 seconds.
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                server.save("save_backup");
+            }
+        },begin, timeinterval);
     }
 }
