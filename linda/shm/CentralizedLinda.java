@@ -124,7 +124,7 @@ public class CentralizedLinda implements Linda {
         TupleCallback cb = new TupleCallback();
         eventRegister(Linda.eventMode.TAKE, Linda.eventTiming.IMMEDIATE, template, cb);
         cb.waitCallback();
-        System.out.println("Je prend : " + cb.getTuple());
+        System.out.println("Je prends : " + cb.getTuple());
         return cb.getTuple();
     }
 
@@ -173,7 +173,7 @@ public class CentralizedLinda implements Linda {
                 }
             }
         }
-        // si aucun tuple n'a pas été trouvé : renvoi null
+        // si aucun tuple n'a été trouvé : renvoie null
         return null;
     }
 
