@@ -174,9 +174,10 @@ public class WhiteboardView implements MouseListener, MouseMotionListener {
           default:
             //model.addShape(new ColoredShape(e.getX(), e.getY(), -1, -1, drawing.getForeground()));
             model.addShape(new ColoredShape(e.getX(), e.getY(), e.getX(), e.getY(), drawing.getForeground()));
+              System.out.println("Pressed?");
             x1 = e.getX();
             y1 = e.getY();
-            drawing.repaint();
+            //drawing.repaint();
             break;
         }
     }

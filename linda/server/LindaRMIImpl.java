@@ -140,18 +140,15 @@ public class LindaRMIImpl extends UnicastRemoteObject implements LindaRMI {
     @Override
     public void eventRegister(eventMode mode, eventTiming timing, Tuple template, CallbackRMI callback)
             throws RemoteException {
-        Callback localcallback = new Callback() {
-            @Override
-            public void call(Tuple t) {
-                try {
-                    callback.call(t);
-                } catch (RemoteException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+        Callback localcallback = t -> {
+            try {
+                callback.call(t);
+            } catch (RemoteException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
         };
-        this.linda.eventRegister(Linda.eventMode.READ, Linda.eventTiming.IMMEDIATE, template, localcallback);
+        this.linda.eventRegister(mode, timing, template, localcallback);
     }
 
     public void save() {

@@ -172,12 +172,14 @@ public class LindaClient implements Linda {
      */
     @Override
     public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
-        try {
-            CallbackRMI remoteCallback = new CallbackRMIImpl(callback);
-            this.linda.eventRegister(mode, timing, template, remoteCallback);
-        } catch (RemoteException e) {
-            System.err.println("Erreur d'execution : " + e);
-        }
+        new Thread(() -> {
+            try {
+                CallbackRMI remoteCallback = new CallbackRMIImpl(callback);
+                this.linda.eventRegister(mode, timing, template, remoteCallback);
+            } catch (RemoteException e) {
+                System.err.println("Erreur d'execution : " + e);
+            }
+        }).start();
     }
 
     /**

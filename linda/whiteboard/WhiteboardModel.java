@@ -77,6 +77,7 @@ public class WhiteboardModel {
 
         // and redraw the view
         view.redraw();
+        System.out.println("Start to draw !");
     }
     
     /**

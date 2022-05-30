@@ -120,6 +120,7 @@ public class WhiteboardControls extends Panel implements ItemListener {
      ** @param e - the item event
      */
     public void itemStateChanged(ItemEvent e) {
+        System.out.println("ici?");
         if (e.getSource() instanceof Checkbox) {
             view.drawing.setForeground(((Component)e.getSource()).getBackground());
         } else if (e.getSource() instanceof Choice) {
