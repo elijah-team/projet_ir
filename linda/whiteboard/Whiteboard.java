@@ -14,14 +14,14 @@ public class Whiteboard {
      ** @param args - command line arguments
      */
     public static void main(String args[]) {
-    	/*if (args.length != 1) {
+    	if (args.length != 1) {
     		System.err.println("Whiteboard serverURI.");
     		return;
-    	}*/
+    	}
         WhiteboardModel model = new WhiteboardModel();
         WhiteboardView view = new WhiteboardView(model);
         model.setView(view);
-        model.start(new linda.server.LindaClient("//localhost:4000/LindaServer"));
+        model.start(new linda.server.LindaClient(args[0]));
     }
 }
 
