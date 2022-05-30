@@ -33,7 +33,7 @@ public class LindaClient implements Linda {
             this.linda = (LindaRMI) Naming.lookup(serverURI);
             System.out.println("Connexion établie !");
         } catch (Exception e) {
-            System.err.println("Erreur d'execution : " + e);
+            System.err.println("Erreur d'execution : Aucun serveur ne tourne à cette adresse");
         }
     }
 

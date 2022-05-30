@@ -6,6 +6,8 @@ import linda.Linda;
 import linda.Tuple;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -30,7 +32,8 @@ public class CentralizedLinda implements Linda, Backup {
     /**
      * Méthode write permettant l'écriture d'un tuple dans l'espace partagé.
      * Prévient les clients en attente d'un motif spécifique.
-     * @param tuple tuple ajouté à l'espace partagé.
+     * 
+     * @param tuple Tuple ajouté à l'espace partagé.
      */
     public void write(Tuple tuple) {
         // Clonage du tuple pour éviter des mauvaises manipulations.
@@ -40,29 +43,31 @@ public class CentralizedLinda implements Linda, Backup {
         System.out.println("Notify takers");
         boolean taken = this.notifyTaker(tuple);
         // Ajoute le tuple à l'espace partagé si personne ne l'a pris.
-        if (!taken) this.sharedSpace.add(tuple);
+        if (!taken)
+            this.sharedSpace.add(tuple);
         save();
     }
 
     /**
      * Alerte les lecteurs en attente de l'ajout d'un tuple dans l'espace
      * partagé.
-     * @param tuple tuple ajouté à l'espace partagé.
+     * 
+     * @param tuple Tuple ajouté à l'espace partagé.
      */
     private void notifyReaders(Tuple tuple) {
         ArrayList<Event> toRemove = new ArrayList<>();
         // Accès restreint à la liste des lecteurs.
-        synchronized(this.readerEventList) {
+        synchronized (this.readerEventList) {
+            // On parcours les lecteurs en attente
             for (Event readEvent : readerEventList) {
                 if (readEvent.isMatching(tuple)) {
-                    synchronized (readEvent) {
-                        System.out.println("Motif trouvé");
-                        readEvent.call(tuple);
-                    }
+                    System.out.println("Motif trouvé");
+                    readEvent.call(tuple);
+                    // Lecture effectuée
                     toRemove.add(readEvent);
                 }
             }
-            //On retire tous les évenements de lecture effectués
+            // On retire tous les évenements de lecture effectués
             readerEventList.removeAll(toRemove);
         }
     }
@@ -70,33 +75,36 @@ public class CentralizedLinda implements Linda, Backup {
     /**
      * Alerte les consomateurs en attente de l'ajout d'un tuple dans l'espace
      * partagé.
-     * @param tuple tuple ajouté à l'espace partagé.
+     * 
+     * @param tuple Tuple ajouté à l'espace partagé.
      */
     private boolean notifyTaker(Tuple tuple) {
         boolean taken = false;
         Event takeEvent = null;
-        synchronized(this.takerEventList) {
+        synchronized (this.takerEventList) {
             Iterator<Event> someEvent = this.takerEventList.iterator();
-            // tant qu'il y a un évènement en mode take et que le tuple n'a pas été pris
+            // Tant qu'il y a un évènement en mode take et que le tuple n'a pas été pris
             while (someEvent.hasNext() && !taken) {
                 takeEvent = someEvent.next();
-                // si le tuple à écrire correspond au template associé à l'évènement
+                // Si le tuple à écrire correspond au motif associé à l'évènement
                 if (takeEvent.isMatching(tuple)) {
-                    // appel du callback de l'évènement
+                    // Appel du callback de l'évènement
                     takeEvent.call(tuple);
-                    // on signifie qu'on a consommé le tuple pour arrêter de chercher
+                    // On signifie qu'on a consommé le tuple pour arrêter de chercher
                     taken = true;
                 }
             }
-            // enlève l'évènement du registre
-            if (taken) takerEventList.remove(takeEvent);
+            // Enlève l'évènement du registre
+            if (taken)
+                takerEventList.remove(takeEvent);
         }
         return taken;
     }
 
     /**
-     * Fonction read. Réalise un read sur un tuple s'il existe dans la mémoire
-     * sinon se met en attente de l'écriture d'un tuple correspondant
+     * Lis et renvoi un tuple de l'espace partagé s'il en existe un correspondant au
+     * motif.
+     * Se met en attente passive jusqu'à avoir un tuple de disponible.
      *
      * @param template le template du tuple que l'on veut read
      * @return le tuple trouvé.
@@ -113,11 +121,12 @@ public class CentralizedLinda implements Linda, Backup {
     }
 
     /**
-     * Fonction take. réalise un take sur un tuple s'il existe dans la mémoire
-     * sinon se met en attente jusqu'à avoir un tuple de disponible
+     * Retire et renvoi un tuple de l'espace partagé s'il en existe un correspondant
+     * au motif.
+     * Se met en attente passive jusqu'à avoir un tuple de disponible.
      *
-     * @param template le template du take que l'on veut faire
-     * @return le tuple trouvé en mémoire correspondant au template
+     * @param template Le motif recherché.
+     * @return Le tuple trouvé en mémoire correspondant au motif.
      * @see Tuple
      */
     public Tuple take(Tuple template) {
@@ -129,41 +138,41 @@ public class CentralizedLinda implements Linda, Backup {
     }
 
     /**
-     * Fonction tryRead. Fait un read non bloquant.
+     * Read non bloquant.
      *
-     * @param template le template du read que l'on veut faire
-     * @return le tuple trouvé en mémoire correspondant au template. Null si
-     * aucun tuple trouvé
+     * @param template Le motif du tuple que l'on recherche.
+     * @return Le tuple trouvé en mémoire correspondant au template. Null si
+     *         aucun tuple correspondant.
      */
     @Override
     public Tuple tryRead(Tuple template) {
-        synchronized (this.sharedSpace){
-            // pour chaque tuple de la mémoire
+        synchronized (this.sharedSpace) {
+            // Parcours de la mémoire partagée
             for (Tuple tuple : this.sharedSpace) {
-                // si le tuple courrant correspond au template
+                // Si un tuple correspond au motif
                 if (tuple.matches(template)) {
-                    // retourne le premier tuple trouvé
+                    // Renvoi le tuple
                     return tuple;
                 }
             }
         }
-        // si aucun tuple n'a pas été trouvé : renvoi null
+        // Si aucun tuple n'a pas été trouvé
         return null;
     }
 
     /**
-     * Fonction tryTake. Fait un take non bloquant.
+     * Take non bloquant.
      *
-     * @param template le template du tuple que l'on souhaite prendre
-     * @return le tuple trouvé en mémoire correspondant au template. Null si
-     * aucun tuple trouvé
+     * @param template Le motif du tuple que l'on souhaite prendre.
+     * @return Le tuple trouvé en mémoire correspondant au template. Null si
+     *         aucun tuple correspondant.
      */
     @Override
     public Tuple tryTake(Tuple template) {
         synchronized (this.sharedSpace) {
-            // pour chaque tuple en mémoire partagée
+            // Parcours de la mémoire partagée
             for (Tuple tuple : this.sharedSpace) {
-                // si le tuple courant correspond
+                // Si un tuple correspond au motif
                 if (tuple.matches(template)) {
                     // enlève le premier tuple trouvé de la mémoire
                     this.sharedSpace.remove(tuple);
@@ -173,17 +182,17 @@ public class CentralizedLinda implements Linda, Backup {
                 }
             }
         }
-        // si aucun tuple n'a été trouvé : renvoie null
+        // Si aucun tuple n'a été trouvé
         return null;
     }
 
     /**
-     * Fonction takeAll. Recupère tous les tuples correspondants au template et
-     * les enlève de la mémoire partagée.
+     * Recupère tous les tuples correspondants au template et
+     * les retire de la mémoire partagée.
      *
-     * @param template le template du take que l'on veut faire
-     * @return une collection de Tuple trouvés en mémoire correspondant au
-     * template. Vide si aucun tuple n'a été trouvé.
+     * @param template Le motif recherché.
+     * @return La collection de tuple trouvés en mémoire correspondant au motif.
+     *         Vide si aucun tuple ne correspond.
      * @see Tuple
      */
     @Override
@@ -199,12 +208,12 @@ public class CentralizedLinda implements Linda, Backup {
     }
 
     /**
-     * Fonction readAll. Recupère tous les tuples correspondants au template et
+     * Recupère tous les tuples correspondants au template et
      * les laisse dans la mémoire partagée.
      *
-     * @param template le template du read que l'on veut faire
-     * @return une collection de tuple trouvés en mémoire correspondant au
-     * template. Vide si aucun tuple n'a été trouvé
+     * @param template Le motif recherché.
+     * @return La collection de tuple trouvés en mémoire correspondant au motif.
+     *         Vide si aucun tuple ne correspond.
      * @see Tuple
      */
     @Override
@@ -215,61 +224,68 @@ public class CentralizedLinda implements Linda, Backup {
                 list.add(tuple);
             }
         }
-        System.out.println("I read all : " + list.toString());
+        System.out.println("Je lis tout: " + list.toString());
         return list;
     }
 
     /**
-     * Procédure eventRegister. Enregistre les évenements dans la liste des
-     * registres s'ils sont en attente. Sinon execute le mode demandé si
-     * possible.
+     * Procédure eventRegister permettant d'enregistrer les évenements dans la liste
+     * des
+     * registres s'ils sont en attente. Execute le mode demandé si possible.
      *
-     * @param mode le mode de l'évènement (read ou take)
-     * @param timing le timing de l'évènement (immédiat ou futur)
-     * @param template le template du tuple à chercher
-     * @param callback le callback a appeler lors de l'évènement
+     * @param mode     Le mode de l'évènement (read ou take).
+     * @param timing   Le timing de l'évènement (immédiat ou futur).
+     * @param template Le template du tuple à chercher.
+     * @param callback Le callback a appeler lors de l'évènement.
      * @see Tuple
      */
     @Override
     public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
-        // si c'est un évenement immédiat
+        System.out.println("Evenement : " + mode.name() + " " + template.toString());
+        // Si c'est un évenement immédiat...
         if (timing.equals(eventTiming.IMMEDIATE)) {
-            // si c'est un read
+            // Si c'est une lecture...
             if (mode.equals(eventMode.READ)) {
-                // essai d'un read
+                // Tentative de lecture
                 Tuple tuple = this.tryRead(template);
                 if (tuple == null) {
-                    // si aucun tuple à lire n'a été trouvé en mémoire : ajout de l'évenement en attente au registre
+                    // Si aucun tuple à lire n'a été trouvé dans l'espace partagé : ajout de
+                    // l'évenement dans le registre correspondant...
                     this.readerEventList.add(new Event(template, callback));
                 } else {
-                    // sinon appel le callback associé à l'évènement
+                    // Sinon on appelle le callback associé à l'évènement
                     callback.call(tuple);
                 }
             } else {
-                // si c'est un take
-                // essai d'un take sur la mémoire partagée
+                // Si c'est un retrait...
+                // Tentative de retrait
                 Tuple tuple = this.tryTake(template);
                 if (tuple == null) {
-                    // si aucun tuple n'a été trouvé : enregistrement de l'evenement dans le registre des take
+                    // Si aucun tuple à retirer n'a été trouvé dans l'espace partagé : ajout de
+                    // l'évenement dans le registre correspondant...
                     this.takerEventList.add(new Event(template, callback));
                 } else {
-                    // sinon appel le callback associé à l'évènement
+                    // Sinon on appelle le callback associé à l'évènement
                     callback.call(tuple);
                 }
             }
         } else {
-            // si c'est un évenement futur
+            // Si c'est un évenement futur...
             if (mode.equals(eventMode.READ)) {
-                // si c'est un read : enregistrement dans le registre des read en attente
+                // Si c'est une lecture : ajout de l'évenement dans le registre des lecteurs en
+                // attente...
                 this.readerEventList.add(new Event(template, callback));
             } else {
-                // si c'est un take : enregistrement dans le registre des take en attente
+                // Si c'est un take : ajout de l'évenement dans le registre des consommateurs en
+                // attente
                 this.takerEventList.add(new Event(template, callback));
             }
         }
-        System.out.println("I registred : " + mode.name() + " " + template.toString());
     }
 
+    /**
+     * Sauvegarde les tuples de l'espace partagé au chemin spécifié.
+     */
     public void save() {
         try {
             FileOutputStream file_output = new FileOutputStream(filePath);
@@ -283,7 +299,12 @@ public class CentralizedLinda implements Linda, Backup {
         }
     }
 
+    /**
+     * Charge le fichier de tuple spécifié en paramètre dans l'espace partagé.
+     */
     public void load() {
+        if (!Files.exists(Paths.get(filePath)))
+            throw new IOError(new RuntimeException("Le fichier spécifié est introuvable"));
         try {
             FileInputStream file_input = new FileInputStream(filePath);
             ObjectInputStream object_input = new ObjectInputStream(file_input);
@@ -291,8 +312,6 @@ public class CentralizedLinda implements Linda, Backup {
             this.sharedSpace.addAll(readCase);
             object_input.close();
             file_input.close();
-        } catch (FileNotFoundException e) {
-            System.err.println("Le fichier spécifié est introuvable");
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

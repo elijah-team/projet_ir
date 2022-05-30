@@ -42,6 +42,7 @@ public class LindaServer {
         }
 
         assert dns != null;
+        //System.setProperty("java.rmi.server.hostname","10.135.225.194");
         dns.rebind("LindaServer", server);
         System.out.println("Le serveur est up");
         Timer timer = new Timer();
@@ -56,6 +57,7 @@ public class LindaServer {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
+                System.out.println("Sauvegarde de sécurité");
                 server.save();
             } catch (Exception e) {
                 System.err.println("Erreur lors de la sauvegarde : " + e);

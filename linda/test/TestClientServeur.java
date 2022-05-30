@@ -52,9 +52,14 @@ public class TestClientServeur {
     }
 
     public static void main(String[] a) {
-
-        final Linda linda = new linda.server.LindaClient("rmi://127.0.0.1:4000/linda");
-        final Linda linda2 = new linda.server.LindaClient("rmi://127.0.0.1:4000/linda");
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+        final Linda linda = new linda.server.LindaClient("//localhost:4000/LindaServer");
+        final Linda linda2 = new linda.server.LindaClient("//localhost:4000/LindaServer");
 
         // test take non existant
         new Thread() {
