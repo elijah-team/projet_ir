@@ -19,7 +19,7 @@ import java.util.*;
 public class CentralizedLinda implements Linda, Backup {
 
     private String filePath = "./.linda_backup";
-    private List<Tuple> sharedSpace;
+    private final List<Tuple> sharedSpace;
     private final List<Event> readerEventList;
     private final List<Event> takerEventList;
 
@@ -333,5 +333,17 @@ public class CentralizedLinda implements Linda, Backup {
     @Override
     public void setBackupPath(String filePath) {
        this.filePath = filePath;
+    }
+
+    /**
+     * Renvoie l'ensemble des tuples de l'espace de tuples
+     * @return la liste des tuples
+     */
+    public Collection<Tuple> getAllTuples() {
+        Collection<Tuple> tuplesClone;
+        synchronized (sharedSpace) {
+            tuplesClone = new ArrayList<>(this.sharedSpace);
+        }
+        return tuplesClone;
     }
 }

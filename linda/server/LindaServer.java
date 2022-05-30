@@ -9,7 +9,17 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class LindaServer {
-        /**
+
+    /**
+     * Hôte de l'URI RMI
+     */
+    private static final String SERVER_HOST = "localhost";
+    /**
+     * Port de l'URI RMI
+     */
+    private static final int SERVER_PORT = 4000;
+
+    /**
      * @param args the command line arguments
      */
     public static void main(String[] args) throws RemoteException {
@@ -33,7 +43,7 @@ public class LindaServer {
             System.err.println("Serveur déjà en écoute sur ce port...");
         }
         LindaRMIImpl server = new LindaRMIImpl();
-
+        server.declareServer(SERVER_HOST, SERVER_PORT);
         // Chargement des tuples sauvegardés (si le fichier existe)
         if (filePath != null && Files.exists(Paths.get(filePath))) {
             System.out.println("Récupération des tuples depuis " + filePath + "...");

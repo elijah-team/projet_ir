@@ -17,6 +17,18 @@ import linda.Tuple;
 public class LindaClient implements Linda {
 
     /**
+     * Le temps fixe d'attente avant de tenter de se reconnecter à un serveur
+     * lorsque le serveur auquel on est connecté ne répond plus
+     */
+    private static final int BACKUP_WAIT = 1000;
+
+    /**
+     * URI du serveur auquel on est connecté
+     * Exemple : rmi://localhost:4000/LindaServer
+     */
+    private String serverURI;
+
+    /**
      * Le {@link LindaRMI}.
      */
     private LindaRMI linda;
@@ -28,12 +40,34 @@ public class LindaClient implements Linda {
      * "//localhost:4000/LindaServer".
      */
     public LindaClient(String serverURI) {
+        System.out.println("Client called with URI: " + serverURI);
+        this.serverURI = serverURI; // "sauvegarder" l'URI du serveur
+        this.joinServer();
+    }
+
+    /**
+     * Se connecter à un LindaServer à l'aide d'une URI
+     */
+    private void joinServer() {
+        //  Connexion au serveur de noms (obtention d'un handle)
         try {
-            System.out.println("LindaServer URI : " + serverURI);
-            this.linda = (LindaRMI) Naming.lookup(serverURI);
-            System.out.println("Connexion établie !");
+            this.linda = (LindaRMI) Naming.lookup(this.serverURI);
         } catch (Exception e) {
-            System.err.println("Erreur d'execution : Aucun serveur ne tourne à cette adresse");
+            System.err.println(e);
+        }
+    }
+
+    /**
+     * Se reconnecter à un LindaServer à l'aide d'une URI
+     * (attend 1s et appelle joinServer())
+     */
+    private void rejoinServer() {
+        try {
+            System.out.println("Main server dead, switching...");
+            Thread.sleep(BACKUP_WAIT);
+            this.joinServer();
+        } catch (InterruptedException e) {
+            System.err.println(e);
         }
     }
 
@@ -49,6 +83,8 @@ public class LindaClient implements Linda {
             this.linda.write(t);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            this.write(t);
         }
     }
 
@@ -66,6 +102,9 @@ public class LindaClient implements Linda {
             tuple = this.linda.take(template);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            return this.take(template);
+
         }
         return tuple;
     }
@@ -84,6 +123,8 @@ public class LindaClient implements Linda {
             tuple = this.linda.read(template);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            return this.read(template);
         }
         return tuple;
     }
@@ -102,6 +143,8 @@ public class LindaClient implements Linda {
             tuple = this.linda.tryTake(template);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            return this.tryTake(template);
         }
         return tuple;
     }
@@ -120,6 +163,8 @@ public class LindaClient implements Linda {
             tuple = this.linda.tryRead(template);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            return this.tryRead(template);
         }
         return tuple;
     }
@@ -138,6 +183,8 @@ public class LindaClient implements Linda {
             tupleCollection = this.linda.takeAll(template);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            return this.takeAll(template);
         }
         return tupleCollection;
     }
@@ -156,6 +203,8 @@ public class LindaClient implements Linda {
             tupleCollection = this.linda.readAll(template);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            return this.readAll(template);
         }
         return tupleCollection;
     }
@@ -178,6 +227,8 @@ public class LindaClient implements Linda {
                 this.linda.eventRegister(mode, timing, template, remoteCallback);
             } catch (RemoteException e) {
                 System.err.println("Erreur d'execution : " + e);
+                this.rejoinServer();
+                this.eventRegister(mode, timing, template, callback);
             }
         }).start();
     }
@@ -193,6 +244,8 @@ public class LindaClient implements Linda {
             this.linda.debug(prefix);
         } catch (RemoteException ex) {
             System.err.println("Erreur d'execution : " + ex);
+            this.rejoinServer();
+            this.debug(prefix);
         }
     }
 }
