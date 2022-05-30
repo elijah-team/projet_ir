@@ -13,7 +13,7 @@ import linda.Tuple;
 public class Event {
 
     /**
-     * Stock un tuple et un callback
+     * Stock un tuple et un callback.
      */
     private Tuple motif;
     private Callback callback;
@@ -21,7 +21,7 @@ public class Event {
     /**
      * Construit un Event avec un template et un callback.
      *
-     * @param motif le template associé à l'évènement
+     * @param motif le template associé à l'évènement.
      * @param callback le callback appelé lors de l'évènement.
      * @see Tuple
      */
@@ -31,10 +31,10 @@ public class Event {
     }
 
     /**
-     * Vérifie si le tuple match le template.
+     * Vérifie si le tuple correspond au template.
      *
-     * @param tuple le tuple comparé au template
-     * @return vrai si le tuple match le template, faux sinon
+     * @param tuple le tuple comparé au template.
+     * @return vrai si le tuple match le template.
      * @see Tuple
      */
     public boolean isMatching(Tuple tuple) {

@@ -199,11 +199,6 @@ public class TestMemoirePartagee {
                 linda.debug("(12)");
 
                 System.out.println("test12 take immediat passé en future : test OK ");
-
-
-
-
-
             }
         }.start();
 
@@ -243,9 +238,5 @@ public class TestMemoirePartagee {
 
             }
         }.start();
-
-
-
-
     }
 }
