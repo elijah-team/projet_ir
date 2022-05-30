@@ -21,9 +21,9 @@ public class CentralizedLinda implements Linda {
     private final List<Event> takerEventList;
 
     public CentralizedLinda() {
-        this.sharedSpace = Collections.synchronizedList(new ArrayList<>());
-        this.readerEventList = Collections.synchronizedList(new ArrayList<>());
-        this.takerEventList = Collections.synchronizedList(new ArrayList<>());
+        this.sharedSpace = Collections.synchronizedList(new ArrayList<Tuple>());
+        this.readerEventList = Collections.synchronizedList(new ArrayList<Event>());
+        this.takerEventList = Collections.synchronizedList(new ArrayList<Event>());
     }
 
     /**
@@ -38,9 +38,9 @@ public class CentralizedLinda implements Linda {
         this.notifyReaders(tuple);
         System.out.println("Notify takers");
         boolean taken = this.notifyTaker(tuple);
-        save(this.filepath);
         // Ajoute le tuple à l'espace partagé si personne ne l'a pris.
         if (!taken) this.sharedSpace.add(tuple);
+        save(this.filepath);
     }
 
     /**
@@ -102,7 +102,6 @@ public class CentralizedLinda implements Linda {
      * @see Tuple
      */
     @Override
-
     public Tuple read(Tuple template) {
         TupleCallback cb = new TupleCallback();
         System.out.println(template);
@@ -189,7 +188,7 @@ public class CentralizedLinda implements Linda {
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
         Tuple tuple;
-        Collection<Tuple> list = new ArrayList();
+        Collection<Tuple> list = new ArrayList<Tuple>();
         while ((tuple = tryTake(template)) != null) {
             list.add(tuple);
         }
@@ -209,7 +208,7 @@ public class CentralizedLinda implements Linda {
      */
     @Override
     public Collection<Tuple> readAll(Tuple template) {
-        Collection<Tuple> list = new ArrayList();
+        Collection<Tuple> list = new ArrayList<Tuple>();
         for (Tuple tuple : this.sharedSpace) {
             if (tuple.matches(template)) {
                 list.add(tuple);
