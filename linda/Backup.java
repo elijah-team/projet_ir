@@ -1,7 +1,9 @@
 package linda;
 
 public interface Backup {
-    void save(String paramString);
+    void save();
 
-    void load(String paramString);
+    void load();
+
+    void setBackupPath(String filePath);
 }

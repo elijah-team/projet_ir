@@ -1,6 +1,5 @@
 package linda.shm;
 
-import com.sun.tools.jconsole.JConsoleContext;
 import linda.Backup;
 import linda.Callback;
 import linda.Linda;
@@ -17,29 +16,42 @@ import java.util.*;
  */
 public class CentralizedLinda implements Linda, Backup {
 
-    private String filepath = "./.linda_backup";
+    private String filePath = "./.linda_backup";
     private List<Tuple> sharedSpace;
     private final List<Event> readerEventList;
     private final List<Event> takerEventList;
 
     public CentralizedLinda() {
-        this.sharedSpace = Collections.synchronizedList(new ArrayList<>());
-        this.readerEventList = Collections.synchronizedList(new ArrayList<>());
-        this.takerEventList = Collections.synchronizedList(new ArrayList<>());
+        this.sharedSpace = Collections.synchronizedList(new ArrayList<Tuple>());
+        this.readerEventList = Collections.synchronizedList(new ArrayList<Event>());
+        this.takerEventList = Collections.synchronizedList(new ArrayList<Event>());
     }
 
-    public void write(Tuple t) {
-        t = t.deepclone();
+    /**
+     * Méthode write permettant l'écriture d'un tuple dans l'espace partagé.
+     * Prévient les clients en attente d'un motif spécifique.
+     * @param tuple tuple ajouté à l'espace partagé.
+     */
+    public void write(Tuple tuple) {
+        // Clonage du tuple pour éviter des mauvaises manipulations.
+        tuple = tuple.deepclone();
         System.out.println("Notify readers");
-        this.notifyReaders(t);
+        this.notifyReaders(tuple);
         System.out.println("Notify takers");
-        boolean taken = this.notifyTaker(t);
-        save(this.filepath);
-        if (!taken) this.sharedSpace.add(t);
+        boolean taken = this.notifyTaker(tuple);
+        // Ajoute le tuple à l'espace partagé si personne ne l'a pris.
+        if (!taken) this.sharedSpace.add(tuple);
+        save();
     }
 
+    /**
+     * Alerte les lecteurs en attente de l'ajout d'un tuple dans l'espace
+     * partagé.
+     * @param tuple tuple ajouté à l'espace partagé.
+     */
     private void notifyReaders(Tuple tuple) {
         ArrayList<Event> toRemove = new ArrayList<>();
+        // Accès restreint à la liste des lecteurs.
         synchronized(this.readerEventList) {
             for (Event readEvent : readerEventList) {
                 if (readEvent.isMatching(tuple)) {
@@ -55,6 +67,11 @@ public class CentralizedLinda implements Linda, Backup {
         }
     }
 
+    /**
+     * Alerte les consomateurs en attente de l'ajout d'un tuple dans l'espace
+     * partagé.
+     * @param tuple tuple ajouté à l'espace partagé.
+     */
     private boolean notifyTaker(Tuple tuple) {
         boolean taken = false;
         Event takeEvent = null;
@@ -86,7 +103,6 @@ public class CentralizedLinda implements Linda, Backup {
      * @see Tuple
      */
     @Override
-
     public Tuple read(Tuple template) {
         TupleCallback cb = new TupleCallback();
         System.out.println(template);
@@ -108,7 +124,7 @@ public class CentralizedLinda implements Linda, Backup {
         TupleCallback cb = new TupleCallback();
         eventRegister(Linda.eventMode.TAKE, Linda.eventTiming.IMMEDIATE, template, cb);
         cb.waitCallback();
-        System.out.println("Je prend : " + cb.getTuple());
+        System.out.println("Je prends : " + cb.getTuple());
         return cb.getTuple();
     }
 
@@ -151,13 +167,13 @@ public class CentralizedLinda implements Linda, Backup {
                 if (tuple.matches(template)) {
                     // enlève le premier tuple trouvé de la mémoire
                     this.sharedSpace.remove(tuple);
-                    save(this.filepath);
+                    save();
                     // retourne le tuple
                     return tuple;
                 }
             }
         }
-        // si aucun tuple n'a pas été trouvé : renvoi null
+        // si aucun tuple n'a été trouvé : renvoie null
         return null;
     }
 
@@ -173,12 +189,12 @@ public class CentralizedLinda implements Linda, Backup {
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
         Tuple tuple;
-        Collection<Tuple> list = new ArrayList();
+        Collection<Tuple> list = new ArrayList<Tuple>();
         while ((tuple = tryTake(template)) != null) {
             list.add(tuple);
         }
         System.out.println("Je prend tout : " + list);
-        save(this.filepath);
+        save();
         return list;
     }
 
@@ -193,7 +209,7 @@ public class CentralizedLinda implements Linda, Backup {
      */
     @Override
     public Collection<Tuple> readAll(Tuple template) {
-        Collection<Tuple> list = new ArrayList();
+        Collection<Tuple> list = new ArrayList<Tuple>();
         for (Tuple tuple : this.sharedSpace) {
             if (tuple.matches(template)) {
                 list.add(tuple);
@@ -254,9 +270,9 @@ public class CentralizedLinda implements Linda, Backup {
         System.out.println("I registred : " + mode.name() + " " + template.toString());
     }
 
-    public void save(String filepath) {
+    public void save() {
         try {
-            FileOutputStream file_output = new FileOutputStream(filepath);
+            FileOutputStream file_output = new FileOutputStream(filePath);
             ObjectOutputStream object_output = new ObjectOutputStream(file_output);
             object_output.writeObject(this.sharedSpace);
             System.out.println("Mémoire partagée sauvegardée");
@@ -267,9 +283,9 @@ public class CentralizedLinda implements Linda, Backup {
         }
     }
 
-    public void load(String filepath) {
+    public void load() {
         try {
-            FileInputStream file_input = new FileInputStream(filepath);
+            FileInputStream file_input = new FileInputStream(filePath);
             ObjectInputStream object_input = new ObjectInputStream(file_input);
             List<Tuple> readCase = (List<Tuple>) object_input.readObject();
             this.sharedSpace.addAll(readCase);
@@ -290,5 +306,10 @@ public class CentralizedLinda implements Linda, Backup {
     @Override
     public void debug(String prefix) {
         System.out.println("Debug " + prefix + " : " + sharedSpace.toString());
+    }
+
+    @Override
+    public void setBackupPath(String filePath) {
+       this.filePath = filePath;
     }
 }

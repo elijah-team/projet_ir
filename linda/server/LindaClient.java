@@ -171,23 +171,13 @@ public class LindaClient implements Linda {
      * @see Tuple
      */
     @Override
-    public void eventRegister(final eventMode mode, final eventTiming timing, final Tuple template, final Callback callback) {
-        // Création d'un thread pour ne pas bloquer le client.
-        new Thread() {
-            @Override
-            public void run() {
-                System.out.println("Callback waiting : " + template);
-                try {
-                    // attend d'obtenir le tuple associé à l'évènement.
-                    Tuple tuple = linda.waitEvent(mode, timing, template);
-                    // appel du callback.
-                    callback.call(tuple);
-                } catch (RemoteException ex) {
-                    System.err.println("Erreur d'execution : " + ex);
-                }
-                System.out.println("Callback done : " + template);
-            }
-        }.start();
+    public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
+        try {
+            CallbackRMI remoteCallback = new CallbackRMIImpl(callback);
+            this.linda.eventRegister(mode, timing, template, remoteCallback);
+        } catch (RemoteException e) {
+            System.err.println("Erreur d'execution : " + e);
+        }
     }
 
     /**

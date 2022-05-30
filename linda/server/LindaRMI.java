@@ -29,9 +29,7 @@ public interface LindaRMI extends Remote {
 
     public Collection<Tuple> readAll(Tuple template) throws RemoteException;
 
-    public Tuple waitEvent(eventMode mode, eventTiming timing, Tuple template) throws RemoteException;
-
-    public void save(String filepath) throws RemoteException;
+    public void eventRegister(eventMode mode, eventTiming timing, Tuple template, CallbackRMI callback) throws RemoteException;
 
     public void debug(String prefix) throws RemoteException;
 }
