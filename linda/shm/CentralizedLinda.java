@@ -61,13 +61,16 @@ public class CentralizedLinda implements Linda {
             for (Event readEvent : readerEventList) {
                 if (readEvent.isMatching(tuple)) {
                     System.out.println("Motif trouvé");
-                    readEvent.call(tuple);
+                    //readEvent.call(tuple);
                     // Lecture effectuée
                     toRemove.add(readEvent);
                 }
             }
             // On retire tous les évenements de lecture effectués
-            readerEventList.removeAll(toRemove);
+            for (Event e : toRemove) {
+                readerEventList.remove(e);
+                e.call(tuple);
+            }
         }
     }
 
