@@ -38,7 +38,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure write. Appel la méthode write du {@link LindaRMI}.
+     * Appel la méthode write du {@link LindaRMI}.
      *
      * @param t le tuple à écrire.
      * @see Tuple
@@ -53,7 +53,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure take. Appel la méthode take du {@link LindaRMI}.
+     * Appel la méthode take du {@link LindaRMI}.
      *
      * @param template le template recherché.
      * @return le tuple trouvé.
@@ -71,7 +71,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure read. Appel le read du {@link LindaRMI}.
+     * Appel le read du {@link LindaRMI}.
      *
      * @param template le template recherché.
      * @return le tuple trouvé.
@@ -89,7 +89,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure trytake. Appel le tryTake du {@link LindaRMI}.
+     * Appel le tryTake du {@link LindaRMI}.
      *
      * @param template le template recherché.
      * @return le tuple trouvé.
@@ -107,7 +107,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure tryRead. Appel du tryRead du {@link LindaRMI}.
+     * Appel du tryRead du {@link LindaRMI}.
      *
      * @param template le template recherché.
      * @return le tuple trouvé.
@@ -125,7 +125,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure takeAll. Appel du takeAll du {@link LindaRMI}.
+     * Appel du takeAll du {@link LindaRMI}.
      *
      * @param template le template recherché.
      * @return la collection de tuple trouvée.
@@ -143,7 +143,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure readAll. Appel du readAll du {@link LindaRMI}.
+     * Appel du readAll du {@link LindaRMI}.
      *
      * @param template le template recherché.
      * @return la collection de tuple trouvée.
@@ -161,7 +161,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure eventRegister. Enregistre un évènement au près du serveur.
+     * Enregistre un évènement au près du serveur.
      * Appel le callback lorsque l'èvenement à eu lieu.
      *
      * @param mode le mode de l'évènement.
@@ -183,7 +183,7 @@ public class LindaClient implements Linda {
     }
 
     /**
-     * Procédure debug. Appel du debug du {@link LindaRMI}.
+     * Appel du debug du {@link LindaRMI}.
      *
      * @param prefix le préfix lors du debug.
      */
