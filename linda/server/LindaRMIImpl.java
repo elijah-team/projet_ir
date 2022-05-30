@@ -156,7 +156,7 @@ public class LindaRMIImpl extends UnicastRemoteObject implements LindaRMI {
     }
 
     public void load(String fileName) {
-        if (fileName.toLowerCase() != "DEFAULT")
+        if (fileName.toUpperCase() != "DEFAULT")
             ((CentralizedLinda) this.linda).setBackupPath(fileName);
         ((CentralizedLinda) this.linda).load();
     }
