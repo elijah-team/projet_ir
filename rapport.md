@@ -62,7 +62,7 @@ Dès lors qu'un tuple est ajouté grâce à la méthode `write` on utilise nos m
 
 Concernant cette implémentation, nous avons opté pour les RMI. Les nouvelles classes se trouvent dans le répertoire "server". Nous avons donc ajouté la combinaison de l'interface `LindaRMI` qui extends `Remote` et de son implémentation `LindaRMIImpl` qui extends `UnicastRemoteObject` en implémentant bien sûr `LindaRMI`. L'implémentation ne contient d'un seul attribut de type `Linda` et qui sera ensuite construit comme un `centralizedLinda`. L'ensemble des méthodes consiste simplement à appeler les méthodes déjà présentées dans la classe `centralizedLinda`. Étant donné que les clients et le serveur interagissent de manière distante il nous est maintenant nécessaire de transformer nos callbacks en des objets accessibles à distance. On utilise encore une fois le fonctionnement RMI avec une interface `Remote`et une implémentation `UnicastRemoteObject` qui a pour attribut un callback classique.   
 
-Pour illustrer notre fonctionnement, prenons l'exemple d'un appel de fonction `eventRegister` depuis un client distant. La méthode appelée est celle se trouvant dans notre classe `LindaClient`:
+Pour illustrer notre fonctionnement, prenons l'exemple d'un appel de méthode `eventRegister` depuis un client distant. La méthode appelée est celle se trouvant dans notre classe `LindaClient`:
 
 ```java
 public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
