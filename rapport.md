@@ -8,152 +8,152 @@ MOUDJEB Mohamed
 
 
 
-# Rapport projet Intergiciels
+- Project report on the Inter-Regulation
 
 
 
-## Sommaire
+- Summary
 
 
 
-1. Présentation du projet
-2. Linda en mode Centralisé
-3. Linda en mode Client/Serveur
-4. Persistance 
-5. Tolérance aux fautes
+1. Presentation of the project
+2. Linda in Centralized Mode
+3. 3. Linda in Customer/Server Mode
+4. Persistence 
+5. Tolerance to faults
 6. Tests 
 
 
 
-## Présentation du projet
+- Project presentation
 
 
 
-Ce rapport présentera le projet réalisé dans le cadre du cours d'Intergiciels suivi à l'ENSEEIHT au cours de l'année 2021-2022. Les différents points qui vont suivre feront état de notre vision quant aux différents choix d'implémentations ainsi que les tests menés afin d'assurer autant que possible la stabilité du programme. 
+This report will present the project carried out as part of the Inter-Information course followed at ENSEEIHT in the year 2021-2022. The various points that will follow will reflect our vision as to the different choices of implementations as well as the tests carried out in order to ensure as far as possible the stability of the programme. 
 
-Tout d'abord, le projet a été réalisé sur GitHub ce qui permet au lecteur de ce rapport de se référer à notre dépôt public (https://github.com/Akodix/projet_ir) afin de consulter notre code.
+First of all, the project was carried out on GitHub, which allows the reader of this report to refer to our public repository (https://github.com/Akodix/project-ir) in order to consult our code.
 
-Nous avons compartimenté notre programme en différentes branches au fur et à mesure de notre avancement comme suit : 
+We have compartmentalized our programme into different branches as we progress as we progress as we progress: 
 
-- `main` : Branche contenant la première étape c'est à dire la version centralisée.
-- `serveur_client`: Branche ajoutant le mode Client/Serveur
-- `backup`: Branche ajoutant la fonction de serveur de secours 
+- "Norso: Branch containing the first step, i.e. the centralized version.
+- Customer: Branch adding the Client/Server Mode
+- Backup: Branch adding the backup server function 
 
-## Linda en mode Centralisé 
+Linda in Centralized Mode 
 
 
 
-La première étape du projet consistait à avoir un fonctionnement centralisé permettant d'ajouter ou bien de lire/récupérer des Tuples au sein d'un espace partagé. Le fait que l'espace soit partagé implique la nécessité d'organiser l'accès à la ressource pour éviter tout conflit. En effet il doit être possible pour plusieurs threads de se mettre en attente de lecture ou de récupération d'un même motif. Il est également nécessaire que les threads demandeurs de tuples se mettent en état d'attente sans que celle-ci soit active sous peine de faire s'effondrer le système en cas de nombreuses demandes. Nous avons donc comme attribut de classe deux listes d'attente. Ces listes d'attentes contiennent des évènements faisant le lien entre le motif de tuple attendu et le callback qui permettra ensuite de "réveiller" le demandeur. Voici les deux listes : 
+The first step in the project was to have a centralized operation to add or read/recover Tuples within a shared space. The fact that space is shared implies the need to organize access to the resource in order to avoid any conflict. Indeed, it must be possible for several threads to wait for reading or retrieving the same pattern. It is also necessary for the threads requesting to tuple to put themselves in a state of waiting without the latter being active, otherwise the system will be collapsing in the event of numerous requests. So we have two waiting lists as class attribute. These waiting lists contain events linking the expected tuple motif to the callback which will then make it possible to "awaken" the applicant. Here are the two lists: 
 
--  `readerEventList`: Liste les évènements en attente de lecture de tuple.
-- `takerEventList`:  Liste les évènements en attente de récupération de tuple.
+List events awaiting tuple reading.
+- Lists events awaiting tuple recovery.
 
-Nous répondons à la problématique de l'attente passive via l'attribut `sem` de notre classe de callback personnalisé `Tuplecallback`. Il s'agit d'un sémaphore initialisé à 0 ce qui permettra au thread de se mettre en attente passive dès le premier appel de notre méthode d'attente. Notre classe de callback comprend également un attribut Tuple qui sert ici à optimiser notre fonctionnement en retournant directement le tuple dès l'instant du match de motif. 
+We respond to the problem of passive waiting via the attribute of our custom callback class 'Tuplecallback'. This is a semaphore initialized at 0 which will allow the thread to pass on passive hold on the first call of our waiting method. Our callback class also includes a Tuple attribute that serves here to optimize our operation by turning the tuple directly back from the moment of the pattern match. 
 
-L'attribut suivant est la liste de tuples `sharedSpace `. C'est notre espace partagé contenant les Tuples voulus par les demandeurs. Il est absolument nécessaire que les trois listes soient en accès exclusif afin d'éviter tout conflit. Nous avons décidé d'utiliser des blocs **synchronized** englobant les instructions de manipulations de ces listes afin de s'assurer qu'à tout moment il n'y a qu'au plus un seul thread en action.
+The next attribute is the list of tuples 'sharedSpace'. This is our shared space containing the Tuples wanted by the applicants. It is absolutely necessary that the three lists be in exclusive access in order to avoid any conflict. We have decided to use 'synchronized' blocks encompassing the instructions for manipulating these lists in order to ensure that at any time there is at most one thread in action.
 
-Pour ce qui concerne nos méthodes publiques `read`et `take`, elles sont élémentaires. Elles se contentent de créer un callback pour le thread et d'appeler la méthode `eventRegister` en renseignant le mode, le timing et la combinaison tuple et callback (qui servira à créer l'évènement avant de l'enregistrer) avant de se mettre en attente passive.
+As far as our public methods are concerned, they are elementary. They just create a callback for the thread and call the 'eventRegister' method by filling in the tuple and callback mode, timing and combination (which will be used to create the event before recording it) before taking on passive waiting.
 
-C'est donc la méthode `eventRegister` qui traitera toutes les requêtes en fonction du mode et du timing. Dans le cas d'un timing futur, la méthode inscrit directement l'évènement dans la liste d'attente en fonction du mode. Dans le cas d'un timing immédiat, la méthode cherche le motif et le renvoie en cas de match (avec l'astuce de l'attribut tuple de notre callback personnalisé) . Si le tuple n'est pas trouvé on ajoute l'évènement dans la bonne liste d'attente.
+It is therefore the eventRegister method that will process all queries according to mode and timing. In the case of future timing, the method directly places the event in the waiting list according to the mode. In the case of immediate timing, the method searches for the pattern and returns it in case of a match (with the trick of the tuple attribute of our personalized callback). If the tuple is not found, we add the event to the right waiting list.
 
-Dès lors qu'un tuple est ajouté grâce à la méthode `write` on utilise nos méthodes `notifyReaders`et `notifyTaker` pour réveiller successivement les lecteurs et récupérateurs (l'ordre est important pour éviter que le tuple ne soit retiré avant que les lecteurs ne l'aient consulté). Si le tuple n'a réveillé aucun récupérateur on pourra donc l'ajouter à notre `sharedSpace`
+As soon as a tuple is added using the 'write' method, we use our methods 'notifyReaders' and 'notifyTaker' to successively wake up the readers and recuperators (the order is important to prevent the tuple from being removed before the readers have consulted it). If the tuple hasn't woke up any recuperators, we can add it to our 'sharedSpace'.
 
-## Linda en mode Client/Serveur 
+Linda in Customer/Warter Mode 
 
-Concernant cette implémentation, nous avons opté pour les RMI. Les nouvelles classes se trouvent dans le répertoire "server". Nous avons donc ajouté la combinaison de l'interface `LindaRMI` qui extends `Remote` et de son implémentation `LindaRMIImpl` qui extends `UnicastRemoteObject` en implémentant bien sûr `LindaRMI`. L'implémentation ne contient d'un seul attribut de type `Linda` et qui sera ensuite construit comme un `centralizedLinda`. L'ensemble des méthodes consiste simplement à appeler les méthodes déjà présentées dans la classe `centralizedLinda`. Étant donné que les clients et le serveur interagissent de manière distante il nous est maintenant nécessaire de transformer nos callbacks en des objets accessibles à distance. On utilise encore une fois le fonctionnement RMI avec une interface `Remote`et une implémentation `UnicastRemoteObject` qui a pour attribut un callback classique.   
+With regard to this implementation, we have opted for the RMIs. The new classes are in the "server" directory. So we added the combination of the interface "LindaRMI" that extends "Remote" and its implementation "LindaRMIImpl" which extended 'UnicastRemoteObject' by of course implementing 'LindaRMI'. The implementation does not contain a single attribute of the type "Linda" and which will then be constructed as a centralizedLinda. The set of methods is simply to call the methods already presented in the centralizedLinda class. Since clients and the server interact remotely, we now need to transform our callbacks into remotely accessible objects. Once again, RMI operation is used with a "Remote" interface and an implementation "UnicastRemoteObject" which has a conventional callback as its attribute.   
 
-Pour illustrer notre fonctionnement, prenons l'exemple d'un appel de méthode `eventRegister` depuis un client distant. La méthode appelée est celle se trouvant dans notre classe `LindaClient`:
+To illustrate how we work, let's take the example of a method call from a remote client. The method called is that in our class LindaClient:
 
-```java
-public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
-    new Thread(() -> {
-        try {
-            CallbackRMI remoteCallback = new CallbackRMIImpl(callback);
+zjava
+public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback)
+    new Thread(() -
+        Try it.
+            CallbackRMI remoteCallback - new CallbackRMIImpl(callback);
             this.linda.eventRegister(mode, timing, template, remoteCallback);
-        } catch (RemoteException e) {
-            System.err.println("Erreur d'execution : " + e);
-        }
-    }).start();
-}
-```
+        - wrestling (RemoteException e)
+            System.err.println("Execution error: "e);
+        - -
+    start();
+- -
+- -
 
-On crée un `remoteCallback` qui se construit avec comme paramètre le callback classique de l'appelant. On appelle ensuite la méthode se trouvant cette fois-ci dans notre classe `LindaRMIImpl` : 
+We create a resetCallback that is built with the conventional caller's callback parameter. Then we call the method this time in our class 'LindaRMIImpl': 
 
-```java
+zjava
 public void eventRegister(eventMode mode, eventTiming timing, Tuple template, CallbackRMI callback)
-    throws RemoteException {
-    Callback localcallback = t -> {
-        try {
+    Rotacks RemoteException
+    Callback localcallback - t -
+        Try it.
             callback.call(t);
-        } catch (RemoteException e) {
+        - wrestling (RemoteException e)
             e.printStackTrace();
-        }
-    };
+        - -
+    -;
     this.linda.eventRegister(mode, timing, template, localcallback);
-}
-```
+- -
+- -
 
-L'ultime appel d'eventRegister qui est codé dans notre `CentralizedLinda`utilisera bien comme paramètre un callback standard. 
+The ultimate e-saleRegister call that is coded in our CentralizedLinda will actually use a standard callback as a parameter. 
 
-Au final, les implémentations que nous avons crées ne servent qu'à donner un caractère distant aux méthodes que nous avons déjà codées dans notre fonctionnement centralisé.  
+Ultimately, the implementations that we have created serve only to give a distant character to the methods that we have already encoded in our centralized operation.  
 
 
 
-## Persistance 
+- Persistence 
 
-Pour assurer la persistance de l'information au cours des sessions, nous avons implémenté deux autres méthodes : l'une pour charger la sauvegarde et l'autre pour réaliser la sauvegarde. Le chemin de sauvegarde est donné en paramètre au lancement du serveur. On importe `Timer`et `TimerTask` afin d'appeler notre méthode `save` toutes les 10 secondes et on réalise une sauvegarde de sécurité en cas de du fin du processus (dû à un signal d'arrêt ou à la méthode `exit`). On réalise également une sauvegarde à chaque ajout/suppression de tuple (peut s'avérer lourd). 
+To ensure the persistence of information during sessions, we implemented two other methods: one to load backup and the other to perform the backup. The backup path is given as a parameter when the server is launched. We import "Timer" and "TimerTask" in order to call our method every 10 seconds and we perform a security backup in case of the end of the process (due to a stop signal or the "exit" method). A backup is also performed at each addition/deletion of tuple (may be heavy). 
 
-Comme le reste, nos deux méthodes sont codées dans `CentralizedLinda`. On sauvegarde notre objet `sharedSpace` dans le fichier binaire se trouvant dans l'attribut `filePath`. Quant au chargement, on recrée une liste de tuple à partir de l'objet sauvegardé dans le fichier binaire et on ajoute tous les tuples à notre attribut. 
+Like the rest, our two methods are coded in CentralizedLinda. We save our sharedSpace object to the binary file in the attribute of "filePath". As for the loading, we recreate a list of tuple from the object saved in the binary file and we add all the tuples to our attribute. 
 
-```java
-public void save() {
-        try {
-            FileOutputStream file_output = new FileOutputStream(filePath);
-            ObjectOutputStream object_output = new ObjectOutputStream(file_output);
-            object_output.writeObject(this.sharedSpace);
-            System.out.println("Mémoire partagée sauvegardée");
-            object_output.close();
-            file_output.close();
-        } catch (IOException e) {
+zjava
+public void save()
+        Try it.
+            FileOutputStream file-output - new FileOutputStream(filePath);
+            ObjectOutputStream object-output - new ObjectOutputStream (file-output);
+            object-output.writeObject(this.sharedSpace);
+            System.out.println("Shared memory saved");
+            object-output.close();
+            file-- output.close();
+        Wrestling (IOException e)
             e.printStackTrace();
-        }
-    }
+        - -
+    - -
 
-public void load() {
-    if (!Files.exists(Paths.get(filePath)))
-        throw new IOError(new RuntimeException("Le fichier spécifié est introuvable"));
-    try {
-        FileInputStream file_input = new FileInputStream(filePath);
-        ObjectInputStream object_input = new ObjectInputStream(file_input);
-        List<Tuple> readCase = (List<Tuple>) object_input.readObject();
+public void load()
+    if (Files.exists(Paths.get(filePath(filePath)))
+        throw new IOError (new RuntimeException("The specified file cannot be found"));
+    Try it.
+        FileInputStream file-input - new FileInputStream(filePath);
+        ObjectInputStream object-input - new ObjectInputStream (file-input);
+        List-- Tuple-- readCase-- (List-- Tuple--) object-- input.readObject();
         this.sharedSpace.addAll(readCase);
-        object_input.close();
-        file_input.close();
-    } catch (IOException | ClassNotFoundException e) {
+        object-- input.close();
+        file-- input.close();
+    - wrestling (IOException - ClassNotFoundException e)
         e.printStackTrace();
-    }
-}
-```
+    - -
+- -
+- -
 
 
 
-## Tolérance aux fautes
+- Tolerance to faults
 
-#### Côté serveur
+Server side
 
-Cette dernière partie consiste à offrir une solution dynamique dans le cas où le serveur principal ne fonctionnerait plus. À partir de maintenant x session(s) peuvent vouloir se déclarer comme serveur. On a donc créé une méthode `declareServer`sur notre classe d'implémentation de serveur Linda. Le serveur va essayer d'exécuter un bind. Deux scénarios peuvent se produire : 
+The latter part consists in offering a dynamic solution in the case where the main server no longer functions. From now on x session(s) may wish to declare itself as a server. So we created a method "declareServer" on our Linda server implementation class. The server will try to run a binder. Two scenarios may occur: 
 
-1. Le bind fonctionne correctement ce qui veut dire que le serveur courant est le premier à se déclarer comme serveur, il aura donc le statut de serveur principal. On spécifie que l'on est bien serveur principal en assignant `false` à l'attribut booléen `isBackup`.
-2. Le bind échoue car il existe déjà un serveur principal (AlreadyBoundException levée). On stocke dans un attribut nommé `backup` l'objet correspondant au serveur principal (grâce à un lookup sur l'URI) et on assigne `True` au booléen `isBackup`. On appelle ensuite sur l'objet stocké dans `backup` (c'est à dire le serveur princiapl) la méthode `registerBackup` en donnant l'instance courante comme paramètre. Le serveur principal stockera ainsi dans son attribut `backup`l'objet correspond à son serveur de secours. On oublie pas d'écrire tous les Tuples du serveur principal dans le `sharedSpace` du serveur de secours (grâce à la méthode `write`). Pour finir le serveur de secours exécutera dans un thread la méthode `pollPrimary` qui vérifiera toutes les deux secondes si le serveur principal est toujours actif. Dans le cas où cela ne serait plus le cas, on appelle la méthode `becomePrimary`qui va rebind, remettre à null l'attribut `backup` et spécifier `isBackup` à `false`. Le serveur secondaire sera bien le nouveau serveur principal et sera prêt à enregistrer tout nouveau serveur comme serveur de secours. Cette implémentation implique que le dernier serveur de secours sera celui qui sera désigné comme serveur principal en cas de chute de celui-ci.
+1. The bind operates correctly, which means that the current server is the first to declare itself as a server, so it will have the status of a main server. It is specified that one is a good main server by assigning "false" to the Boolean attribute 'isBackup'.
+2. The bind fails because there is already a main server (AlreadyBoundException lifted). The object corresponding to the main server (through a lookup on the URI) is stored in an attribute named "backup" and the Boolean is assigned to the Boolean 'isBackup'. The object stored in backup (i.e. the princiapl server) is then called the recoristerBackup method by giving the current instance as a parameter. The main server will thus store in its attribute backup the object corresponds to its backup server. We don't forget to write all the Tuples of the main server in the "sharedSpace" of the backup server (through the "write" method. Finally, the backup server will execute in a thread the method "pollPrimary" which will check every two seconds whether the main server is still active. In the event that this is no longer the case, the method is called "becomePrimary" which will rejoin, restore to null the attribute "backup" and specify "isBackup" to false. The secondary server will indeed be the new main server and will be ready to register any new server as a backup server. This implementation implies that the last backup server will be the one that will be designated as the main server in the event of a fall of the latter.
 
-#### Côté client
+- Customer side
 
-À la construction du client on appelle une méthode pour lookup le serveur. On crée également une méthode qui permet de relancer un lookup pour contacter le serveur de secours quand le serveur principal tombera. Cette méthode sera donc appelée en cas de  `RemoteException` dans les méthodes appelant les méthodes de l'objet Linda distant. On appellera ensuite récursivement la méthode ayant levée l'erreur pour ne pas perdre l'action ayant révélée le dysfonctionnement du serveur principal. 
-
-
-
-## Tests
+At the construction of the client, a method is called a method for looking the server. We also create a method that makes it possible to restart a lookup to contact the backup server when the main server falls. This method will therefore be called in the case of "RemoteException" in the methods calling the methods of the distant Linda object. The method that has lifted the error will then recursively so as not to lose the action that revealed the malfunction of the main server. 
 
 
 
-Pour mesurer l'avancement du projet et le bon fonctionnement de nos ajouts nous avons utilisé la classe `WhiteBoard `. Nous avons également utilisé l'application web fournit au cours des séances en salle pour exécuter les tests sur nos classes. Pour compléter ces tests nous avons ajouté des tests (consultables depuis projet_ir/linda/test).
+Tests
+
+
+
+To measure the progress of the project and the proper functioning of our additions, we used the "WhiteBoard" class. We also used the web application provided during in-room sessions to run the tests on our classes. To complete these tests we have added tests (available from project/linda/test).
